@@ -1,4 +1,4 @@
-package com.thesis.qnabot.api.openai.dto;
+package com.thesis.qnabot.api.embedding.adapter.out.dto.open_ai;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -32,7 +32,7 @@ public class OpenAiServiceImpl implements OpenAiService {
     
     private static final String OPENAI_URL = "https://api.openai.com/v1";
     
-    private static final String TOKEN = "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";
+    private static final String TOKEN = "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";
     
     private static final String EMBEDDING_MODEL = "text-embedding-ada-002";
     

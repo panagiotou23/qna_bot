@@ -30,10 +30,11 @@ public class OpenAiEmbeddingAdapter implements OpenAiEmbeddingReadPort {
         headers.add("Authorization", "Bearer " + apiKey);
         headers.add("Content-Type", "application/json");
 
-        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(OPENAI_URL + "/embeddings");
+        final var url = OPENAI_URL + "/embeddings";
         EmbeddingRequestDto request = new EmbeddingRequestDto(EMBEDDING_MODEL, input);
 
-        EmbeddingResponseDto response = restTemplate.exchange(builder.buildAndExpand().toUri(),
+        EmbeddingResponseDto response = restTemplate.exchange(
+                url,
                 HttpMethod.POST,
                 new HttpEntity<>(request, headers),
                 EmbeddingResponseDto.class).getBody();

@@ -1,6 +1,5 @@
 package com.thesis.qnabot.api.embedding.adapter.out;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.thesis.qnabot.api.embedding.adapter.out.dto.pinecone.PineconeUpsertVectorResponseDto;
 import com.thesis.qnabot.api.embedding.adapter.out.dto.pinecone.PineconeUpsertVectorsRequestDto;
 import com.thesis.qnabot.api.embedding.adapter.out.dto.pinecone.PineconeVectorDto;
@@ -18,7 +17,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 

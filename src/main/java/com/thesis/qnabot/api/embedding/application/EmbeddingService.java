@@ -23,7 +23,7 @@ public class EmbeddingService implements GetEmbeddingUseCase {
     @Override
     public List<Embedding> getEmbeddings(String embeddingApiKey, String vectorDatabaseApiKey, String document, int chunkSize, int chunkOverlap) {
 
-        final var chucks = chuckDocument(document, chunkSize, chunkOverlap);
+        final var chucks = chunkDocument(document, chunkSize, chunkOverlap);
 
         final var embeddings = chucks.stream()
                 .map(input ->
@@ -38,7 +38,7 @@ public class EmbeddingService implements GetEmbeddingUseCase {
         return embeddings;
     }
 
-    private List<String> chuckDocument(String input, int chunkSize, int chunkOverlap) {
+    private List<String> chunkDocument(String input, int chunkSize, int chunkOverlap) {
         List<String> chunks = new ArrayList<>();
 
         if (input == null || input.trim().isEmpty() || chunkSize <= 0 || chunkOverlap >= chunkSize) {
@@ -54,6 +54,9 @@ public class EmbeddingService implements GetEmbeddingUseCase {
             chunks.add(chunk.toString().trim());
         }
 
+        if (chunks.isEmpty()) {
+            chunks.add(input);
+        }
         return chunks;
     }
 

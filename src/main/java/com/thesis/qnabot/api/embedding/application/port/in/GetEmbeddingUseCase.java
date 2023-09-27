@@ -6,6 +6,6 @@ import java.util.List;
 
 public interface GetEmbeddingUseCase {
 
-    List<Embedding> getEmbeddings(String apiKey, String input, int chunkSize, int chunkOverlap);
+    List<Embedding> getEmbeddings(String embeddingApiKey, String vectorDatabaseApiKey, String input, int chunkSize, int chunkOverlap);
 
 }

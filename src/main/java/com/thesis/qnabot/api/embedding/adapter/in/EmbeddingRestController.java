@@ -29,12 +29,13 @@ public class EmbeddingRestController {
 
     @GetMapping("/open-ai/embedding")
     public List<EmbeddingDto> getEmbedding(
-            @RequestParam String apiKey,
+            @RequestParam String embeddingApiKey,
+            @RequestParam String vectorDatabaseApiKey,
             @RequestParam String input,
             @RequestParam int chunkSize,
             @RequestParam int chunkOverlap
     ) {
-        return getEmbedding.getEmbeddings(apiKey, input, chunkSize, chunkOverlap).stream()
+        return getEmbedding.getEmbeddings(embeddingApiKey, vectorDatabaseApiKey, input, chunkSize, chunkOverlap).stream()
                 .map(EmbeddingRestControllerMapper.INSTANCE::fromDomain)
                 .collect(Collectors.toList());
     }

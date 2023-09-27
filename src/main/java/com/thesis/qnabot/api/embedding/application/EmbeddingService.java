@@ -2,6 +2,7 @@ package com.thesis.qnabot.api.embedding.application;
 
 import com.thesis.qnabot.api.embedding.application.port.in.GetEmbeddingUseCase;
 import com.thesis.qnabot.api.embedding.application.port.out.OpenAiEmbeddingReadPort;
+import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseWritePort;
 import com.thesis.qnabot.api.embedding.domain.Embedding;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,8 +10,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,19 +18,24 @@ import java.util.stream.Collectors;
 public class EmbeddingService implements GetEmbeddingUseCase {
 
     private final OpenAiEmbeddingReadPort openAiEmbeddingReadPort;
+    private final VectorDatabaseWritePort vectorDatabaseWritePort;
 
     @Override
-    public List<Embedding> getEmbeddings(String apiKey, String document, int chunkSize, int chunkOverlap) {
+    public List<Embedding> getEmbeddings(String embeddingApiKey, String vectorDatabaseApiKey, String document, int chunkSize, int chunkOverlap) {
 
         final var chucks = chuckDocument(document, chunkSize, chunkOverlap);
 
-        return chucks.stream()
+        final var embeddings = chucks.stream()
                 .map(input ->
                         Embedding.builder()
                                 .index(input)
-                                .values(openAiEmbeddingReadPort.getEmbedding(apiKey, input))
+                                .values(openAiEmbeddingReadPort.getEmbedding(embeddingApiKey, input))
                                 .build()
                 ).collect(Collectors.toList());
+
+        vectorDatabaseWritePort.saveEmbeddings(vectorDatabaseApiKey, embeddings);
+
+        return embeddings;
     }
 
     private List<String> chuckDocument(String input, int chunkSize, int chunkOverlap) {

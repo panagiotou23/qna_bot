@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @RestController
 @RequiredArgsConstructor
 public class EmbeddingRestController {
@@ -25,13 +28,15 @@ public class EmbeddingRestController {
     }
 
     @GetMapping("/open-ai/embedding")
-    public EmbeddingDto getEmbedding(
+    public List<EmbeddingDto> getEmbedding(
             @RequestParam String apiKey,
-            @RequestParam String input
+            @RequestParam String input,
+            @RequestParam int chunkSize,
+            @RequestParam int chunkOverlap
     ) {
-        return EmbeddingRestControllerMapper.INSTANCE.fromDomain(
-                getEmbedding.getEmbedding(apiKey, input)
-        );
+        return getEmbedding.getEmbeddings(apiKey, input, chunkSize, chunkOverlap).stream()
+                .map(EmbeddingRestControllerMapper.INSTANCE::fromDomain)
+                .collect(Collectors.toList());
     }
 
 

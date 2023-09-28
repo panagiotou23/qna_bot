@@ -1,9 +1,9 @@
 package com.thesis.qnabot.api.embedding.adapter.in;
 
 import com.thesis.qnabot.api.embedding.adapter.in.dto.EmbeddingDto;
-import com.thesis.qnabot.api.embedding.application.port.in.GetEmbeddingUseCase;
+import com.thesis.qnabot.api.embedding.application.port.in.CreateEmbeddingsUseCase;
+import com.thesis.qnabot.api.embedding.application.port.in.GetEmbeddingsUseCase;
 import com.thesis.qnabot.api.embedding.domain.Embedding;
-import com.thesis.qnabot.util.Utils;
 import lombok.RequiredArgsConstructor;
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;
@@ -20,7 +20,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EmbeddingRestController {
 
-    private final GetEmbeddingUseCase getEmbedding;
+    private final CreateEmbeddingsUseCase createEmbeddingsUseCase;
+    private final GetEmbeddingsUseCase getEmbeddingsUseCase;
 
     @PostMapping("/open-ai/embedding")
     public void getEmbedding(
@@ -30,13 +31,30 @@ public class EmbeddingRestController {
             @RequestParam int chunkSize,
             @RequestParam int chunkOverlap
     ) {
-        getEmbedding.getEmbeddings(
+        createEmbeddingsUseCase.createEmbeddings(
                 file,
                 embeddingApiKey,
                 vectorDatabaseApiKey,
                 chunkSize,
                 chunkOverlap
         );
+    }
+
+    @GetMapping("/open-ai/embedding")
+    List<EmbeddingDto> findKNearest(
+            @RequestParam String embeddingApiKey,
+            @RequestParam String vectorDatabaseApiKey,
+            @RequestParam String query,
+            @RequestParam int k
+    ) {
+        return getEmbeddingsUseCase.findKNearest(
+                        embeddingApiKey,
+                        vectorDatabaseApiKey,
+                        query,
+                        k
+                ).stream()
+                .map(EmbeddingRestControllerMapper.INSTANCE::fromDomain)
+                .collect(Collectors.toList());
     }
 
 

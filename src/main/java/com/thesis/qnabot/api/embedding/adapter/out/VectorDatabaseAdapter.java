@@ -1,8 +1,7 @@
 package com.thesis.qnabot.api.embedding.adapter.out;
 
-import com.thesis.qnabot.api.embedding.adapter.out.dto.pinecone.PineconeUpsertVectorResponseDto;
-import com.thesis.qnabot.api.embedding.adapter.out.dto.pinecone.PineconeUpsertVectorsRequestDto;
-import com.thesis.qnabot.api.embedding.adapter.out.dto.pinecone.PineconeVectorDto;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.thesis.qnabot.api.embedding.adapter.out.dto.pinecone.*;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseReadPort;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseWritePort;
 import com.thesis.qnabot.api.embedding.domain.Embedding;
@@ -54,6 +53,36 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
         }
     }
 
+    @Override
+    public List<Embedding> findKNearest(String apiKey, List<Double> values, int k) {
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Api-Key", apiKey);
+        headers.add("accept", "application/json");
+        headers.add("Content-Type", "application/json");
+
+        final var url = PINECONE_DB_URL + "/query";
+
+        final var body = PineconeFindKNearestRequestDto.builder()
+                .vector(values)
+                .topK(k)
+                .build();
+
+        final var response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                new HttpEntity<>(body, headers),
+                PineconeFindKNearestResponseDto.class
+        ).getBody();
+
+        if (response == null || response.getMatches() == null) {
+            throw new RuntimeException("Could not get nearest embeddings in Pinecone");
+        }
+        return response.getMatches().stream()
+                .map(VectorDatabaseAdapterMapper.INSTANCE::toDomain)
+                .collect(Collectors.toList());
+    }
+
 
     @Mapper
     abstract static class VectorDatabaseAdapterMapper {
@@ -63,5 +92,7 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
         @Mapping(target = "id", source = "index")
         abstract PineconeVectorDto fromDomain(Embedding domain);
 
+        @Mapping(target = "index", source = "id")
+        abstract Embedding toDomain(PineconeMatchDto dto);
     }
 }

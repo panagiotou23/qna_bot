@@ -1,7 +1,9 @@
 package com.thesis.qnabot.api.embedding.application;
 
-import com.thesis.qnabot.api.embedding.application.port.in.GetEmbeddingUseCase;
+import com.thesis.qnabot.api.embedding.application.port.in.CreateEmbeddingsUseCase;
+import com.thesis.qnabot.api.embedding.application.port.in.GetEmbeddingsUseCase;
 import com.thesis.qnabot.api.embedding.application.port.out.OpenAiEmbeddingReadPort;
+import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseReadPort;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseWritePort;
 import com.thesis.qnabot.api.embedding.domain.Embedding;
 import com.thesis.qnabot.util.Utils;
@@ -17,13 +19,14 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class EmbeddingService implements GetEmbeddingUseCase {
+public class EmbeddingService implements CreateEmbeddingsUseCase, GetEmbeddingsUseCase {
 
     private final OpenAiEmbeddingReadPort openAiEmbeddingReadPort;
     private final VectorDatabaseWritePort vectorDatabaseWritePort;
+    private final VectorDatabaseReadPort vectorDatabaseReadPort;
 
     @Override
-    public void getEmbeddings(MultipartFile file, String embeddingApiKey, String vectorDatabaseApiKey, int chunkSize, int chunkOverlap) {
+    public void createEmbeddings(MultipartFile file, String embeddingApiKey, String vectorDatabaseApiKey, int chunkSize, int chunkOverlap) {
 
         final var document = Utils.toString(file);
 
@@ -39,6 +42,16 @@ public class EmbeddingService implements GetEmbeddingUseCase {
 
         vectorDatabaseWritePort.saveEmbeddings(vectorDatabaseApiKey, embeddings);
 
+    }
+
+    @Override
+    public List<Embedding> findKNearest(String embeddingApiKey, String vectorDatabaseApiKey, String query, int k) {
+        final var queryEmbedding = Embedding.builder()
+                .index(query)
+                .values(openAiEmbeddingReadPort.getEmbedding(embeddingApiKey, query))
+                .build();
+
+        return vectorDatabaseReadPort.findKNearest(vectorDatabaseApiKey, queryEmbedding.getValues(), k);
     }
 
     private List<String> chunkDocument(String input, int chunkSize, int chunkOverlap) {
@@ -62,6 +75,5 @@ public class EmbeddingService implements GetEmbeddingUseCase {
         }
         return chunks;
     }
-
 
 }

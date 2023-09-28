@@ -4,9 +4,11 @@ import com.thesis.qnabot.api.embedding.application.port.in.GetEmbeddingUseCase;
 import com.thesis.qnabot.api.embedding.application.port.out.OpenAiEmbeddingReadPort;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseWritePort;
 import com.thesis.qnabot.api.embedding.domain.Embedding;
+import com.thesis.qnabot.util.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +23,9 @@ public class EmbeddingService implements GetEmbeddingUseCase {
     private final VectorDatabaseWritePort vectorDatabaseWritePort;
 
     @Override
-    public List<Embedding> getEmbeddings(String embeddingApiKey, String vectorDatabaseApiKey, String document, int chunkSize, int chunkOverlap) {
+    public void getEmbeddings(MultipartFile file, String embeddingApiKey, String vectorDatabaseApiKey, int chunkSize, int chunkOverlap) {
+
+        final var document = Utils.toString(file);
 
         final var chucks = chunkDocument(document, chunkSize, chunkOverlap);
 
@@ -35,7 +39,6 @@ public class EmbeddingService implements GetEmbeddingUseCase {
 
         vectorDatabaseWritePort.saveEmbeddings(vectorDatabaseApiKey, embeddings);
 
-        return embeddings;
     }
 
     private List<String> chunkDocument(String input, int chunkSize, int chunkOverlap) {

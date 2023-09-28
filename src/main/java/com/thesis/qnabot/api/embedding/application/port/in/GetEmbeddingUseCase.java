@@ -1,11 +1,9 @@
 package com.thesis.qnabot.api.embedding.application.port.in;
 
-import com.thesis.qnabot.api.embedding.domain.Embedding;
-
-import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface GetEmbeddingUseCase {
 
-    List<Embedding> getEmbeddings(String embeddingApiKey, String vectorDatabaseApiKey, String input, int chunkSize, int chunkOverlap);
+    void getEmbeddings(MultipartFile file, String embeddingApiKey, String vectorDatabaseApiKey, int chunkSize, int chunkOverlap);
 
 }

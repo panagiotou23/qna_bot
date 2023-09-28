@@ -22,22 +22,21 @@ public class EmbeddingRestController {
 
     private final GetEmbeddingUseCase getEmbedding;
 
-    @PostMapping("/parse-file")
-    public String getTextFromPdf(@RequestParam("file") MultipartFile file) {
-        return Utils.toString(file);
-    }
-
-    @GetMapping("/open-ai/embedding")
-    public List<EmbeddingDto> getEmbedding(
+    @PostMapping("/open-ai/embedding")
+    public void getEmbedding(
+            @RequestParam("file") MultipartFile file,
             @RequestParam String embeddingApiKey,
             @RequestParam String vectorDatabaseApiKey,
-            @RequestParam String input,
             @RequestParam int chunkSize,
             @RequestParam int chunkOverlap
     ) {
-        return getEmbedding.getEmbeddings(embeddingApiKey, vectorDatabaseApiKey, input, chunkSize, chunkOverlap).stream()
-                .map(EmbeddingRestControllerMapper.INSTANCE::fromDomain)
-                .collect(Collectors.toList());
+        getEmbedding.getEmbeddings(
+                file,
+                embeddingApiKey,
+                vectorDatabaseApiKey,
+                chunkSize,
+                chunkOverlap
+        );
     }
 
 

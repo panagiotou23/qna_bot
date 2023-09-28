@@ -4,12 +4,13 @@ import com.thesis.qnabot.api.embedding.adapter.out.dto.open_ai.EmbeddingRequestD
 import com.thesis.qnabot.api.embedding.adapter.out.dto.open_ai.EmbeddingResponseDto;
 import com.thesis.qnabot.api.embedding.application.port.out.OpenAiEmbeddingReadPort;
 import lombok.RequiredArgsConstructor;
+import org.mapstruct.Mapper;
+import org.mapstruct.factory.Mappers;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 
@@ -31,7 +32,7 @@ public class OpenAiEmbeddingAdapter implements OpenAiEmbeddingReadPort {
         headers.add("Content-Type", "application/json");
 
         final var url = OPENAI_URL + "/embeddings";
-        EmbeddingRequestDto request = new EmbeddingRequestDto(EMBEDDING_MODEL, input);
+        EmbeddingRequestDto request = OpenAiEmbeddingAdapterMapper.INSTANCE.fromDomain(EMBEDDING_MODEL, input);
 
         EmbeddingResponseDto response = restTemplate.exchange(
                 url,
@@ -46,4 +47,11 @@ public class OpenAiEmbeddingAdapter implements OpenAiEmbeddingReadPort {
 
     }
 
+    @Mapper
+    abstract static class OpenAiEmbeddingAdapterMapper {
+        private static final OpenAiEmbeddingAdapterMapper INSTANCE =
+                Mappers.getMapper(OpenAiEmbeddingAdapterMapper.class);
+
+        abstract EmbeddingRequestDto fromDomain(String model, String input);
+    }
 }

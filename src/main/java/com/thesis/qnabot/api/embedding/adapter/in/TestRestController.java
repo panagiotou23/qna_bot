@@ -1,16 +1,16 @@
 package com.thesis.qnabot.api.embedding.adapter.in;
 
 import com.thesis.qnabot.api.embedding.adapter.in.dto.EmbeddingDto;
+import com.thesis.qnabot.api.embedding.adapter.in.dto.QueryCompletionModelRequestDto;
 import com.thesis.qnabot.api.embedding.application.port.in.CreateEmbeddingsUseCase;
 import com.thesis.qnabot.api.embedding.application.port.in.GetEmbeddingsUseCase;
+import com.thesis.qnabot.api.embedding.application.port.in.QueryCompletionModelUseCase;
 import com.thesis.qnabot.api.embedding.domain.Embedding;
+import com.thesis.qnabot.api.embedding.domain.request.QueryCompletionModelRequest;
 import lombok.RequiredArgsConstructor;
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -18,10 +18,11 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
-public class EmbeddingRestController {
+public class TestRestController {
 
     private final CreateEmbeddingsUseCase createEmbeddingsUseCase;
     private final GetEmbeddingsUseCase getEmbeddingsUseCase;
+    private final QueryCompletionModelUseCase queryCompletionModelUseCase;
 
     @PostMapping("/open-ai/embedding")
     public void getEmbedding(
@@ -53,16 +54,24 @@ public class EmbeddingRestController {
                         query,
                         k
                 ).stream()
-                .map(EmbeddingRestControllerMapper.INSTANCE::fromDomain)
+                .map(TestRestControllerMapper.INSTANCE::fromDomain)
                 .collect(Collectors.toList());
     }
 
+    @PostMapping("open-ai/query-completion-model")
+    String response(@RequestBody QueryCompletionModelRequestDto dto) {
+        return queryCompletionModelUseCase.query(
+                TestRestControllerMapper.INSTANCE.toDomain(dto)
+        );
+    }
 
     @Mapper
-    abstract static class EmbeddingRestControllerMapper {
-        private static final EmbeddingRestControllerMapper INSTANCE =
-                Mappers.getMapper(EmbeddingRestControllerMapper.class);
+    abstract static class TestRestControllerMapper {
+        private static final TestRestControllerMapper INSTANCE =
+                Mappers.getMapper(TestRestControllerMapper.class);
 
         abstract EmbeddingDto fromDomain(Embedding domain);
+
+        abstract QueryCompletionModelRequest toDomain(QueryCompletionModelRequestDto dto);
     }
 }

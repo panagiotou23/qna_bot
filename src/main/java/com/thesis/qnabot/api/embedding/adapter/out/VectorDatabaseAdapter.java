@@ -1,6 +1,7 @@
 package com.thesis.qnabot.api.embedding.adapter.out;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import com.thesis.qnabot.api.embedding.adapter.out.dto.pinecone.*;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseReadPort;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseWritePort;
@@ -26,7 +27,9 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    private final String PINECONE_DB_URL = "https://thesis-size-1536-aef333f.svc.gcp-starter.pinecone.io";
+    private final String PINECONE_DB_URL = "https://thesis-initial-test-aef333f.svc.gcp-starter.pinecone.io";
+
+    private final int VECTORS_CHUNK_SIZE = 100;
 
     @Override
     public void saveEmbeddings(String apiKey, List<Embedding> embeddings) {
@@ -37,20 +40,26 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
 
         final var url = PINECONE_DB_URL + "/vectors/upsert";
 
-        final var body = PineconeUpsertVectorsRequestDto.builder()
-                .vectors(embeddings.stream().map(VectorDatabaseAdapterMapper.INSTANCE::fromDomain).collect(Collectors.toList()))
-                .build();
+        final var embeddingsChunked = Lists.partition(embeddings, VECTORS_CHUNK_SIZE);
+        final int[] totalEmbeddings = {0};
+        embeddingsChunked.forEach(embeddingsChunk -> {
+            final var body = PineconeUpsertVectorsRequestDto.builder()
+                    .vectors(embeddingsChunk.stream().map(VectorDatabaseAdapterMapper.INSTANCE::fromDomain).collect(Collectors.toList()))
+                    .build();
 
-        final var response = restTemplate.exchange(
-                url,
-                HttpMethod.POST,
-                new HttpEntity<>(body, headers),
-                PineconeUpsertVectorResponseDto.class
-        ).getBody();
+            final var response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    new HttpEntity<>(body, headers),
+                    PineconeUpsertVectorResponseDto.class
+            ).getBody();
 
-        if (response == null || response.getUpsertedCount() != embeddings.size()) {
-            throw new RuntimeException("Could not post all embeddings in Pinecone");
-        }
+            if (response == null || response.getUpsertedCount() != embeddingsChunk.size()) {
+                throw new RuntimeException("Could not post all embeddings in Pinecone");
+            }
+            totalEmbeddings[0] += embeddingsChunk.size();
+            log.info("Stored " + (totalEmbeddings[0]) + " of " + embeddings.size() + " total embeddings");
+        });
     }
 
     @Override

@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class EmbeddingRequestDto {
+public class OpenAiEmbeddingRequestDto {
 
     private String model;
     

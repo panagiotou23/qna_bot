@@ -5,11 +5,10 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class EmbeddingDataDto {
-
+public class OpenAiEmbeddingResponseDto {
+    
     private String object;
     
-    private List<Double> embedding;
+    private List<OpenAiEmbeddingDataDto> data;
     
-    private Integer index;
 }

@@ -52,8 +52,8 @@ public class Utils {
                 }
 
             }
+            log.info("File parsed sucessfully");
 
-            log.info(parsedText);
         } catch (Exception e) {
             log.error("Failed to parse file", e);
         }

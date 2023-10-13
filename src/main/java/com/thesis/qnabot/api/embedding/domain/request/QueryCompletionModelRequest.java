@@ -7,12 +7,6 @@ import lombok.Data;
 @Builder
 public class QueryCompletionModelRequest {
 
-    private String completionApiKey;
-
-    private String embeddingApiKey;
-
-    private String vectorDatabaseApiKey;
-
     private String query;
 
     private int k;

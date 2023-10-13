@@ -1,6 +1,5 @@
 package com.thesis.qnabot.api.embedding.adapter.out;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.thesis.qnabot.api.embedding.adapter.out.dto.open_ai.*;
 import com.thesis.qnabot.api.embedding.application.port.out.OpenAiCompletionPort;
 import com.thesis.qnabot.api.embedding.application.port.out.OpenAiEmbeddingReadPort;

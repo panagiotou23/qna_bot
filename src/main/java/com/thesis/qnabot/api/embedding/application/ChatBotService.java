@@ -8,8 +8,7 @@ import com.thesis.qnabot.api.embedding.application.port.out.OpenAiCompletionPort
 import com.thesis.qnabot.api.embedding.application.port.out.OpenAiEmbeddingReadPort;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseReadPort;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseWritePort;
-import com.thesis.qnabot.api.embedding.domain.Embedding;
-import com.thesis.qnabot.api.embedding.domain.Query;
+import com.thesis.qnabot.api.embedding.domain.*;
 import com.thesis.qnabot.api.embedding.domain.request.QueryCompletionModelRequest;
 import com.thesis.qnabot.util.Utils;
 import lombok.RequiredArgsConstructor;
@@ -32,10 +31,22 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
     private final VectorDatabaseWritePort vectorDatabaseWritePort;
     private final VectorDatabaseReadPort vectorDatabaseReadPort;
 
+
+    private int chunkSize = 100;
+    private int chunkOverlap = 25;
+
+    private EmbeddingModel embeddingModel = EmbeddingModel.OPEN_AI;
+    private CompletionModel completionModel = CompletionModel.OPEN_AI;
+    private VectorDatabaseModel vectorDatabaseModel = VectorDatabaseModel.PINECONE;
+
+    private String embeddingApiKey = "api-key";
+    private String vectorDatabaseApiKey = "api-key";
+    private String completionApiKey = "api-key";
+
     private final int MAX_BYTES_PER_CHUNK = 511;
 
     @Override
-    public void createEmbeddings(MultipartFile file, String embeddingApiKey, String vectorDatabaseApiKey, int chunkSize, int chunkOverlap) {
+    public void createEmbeddings(MultipartFile file) {
 
         final var document = Utils.toString(file);
 
@@ -45,26 +56,49 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
                 chunkOverlap
         );
 
-        final var embeddings = chucks.stream()
-                .map(input ->
-                        Embedding.builder()
-                                .index(input)
-                                .values(openAiEmbeddingReadPort.getEmbedding(embeddingApiKey, input))
-                                .build()
-                ).collect(Collectors.toList());
+        List<Embedding> embeddings;
+        if (embeddingModel.equals(EmbeddingModel.OPEN_AI)) {
+            embeddings = chucks.stream()
+                    .map(input ->
+                            Embedding.builder()
+                                    .index(input)
+                                    .values(openAiEmbeddingReadPort.getEmbedding(embeddingApiKey, input))
+                                    .build()
+                    ).collect(Collectors.toList());
+//        } else if (embeddingModel.equals(EmbeddingModel.BERT)) {
 
-        vectorDatabaseWritePort.saveEmbeddings(vectorDatabaseApiKey, embeddings);
+        } else {
+            throw new RuntimeException("The Embedding Model is either not defined or not supported");
+        }
+
+        if (vectorDatabaseModel.equals(VectorDatabaseModel.PINECONE)) {
+            vectorDatabaseWritePort.saveEmbeddings(vectorDatabaseApiKey, embeddings);
+        } else {
+            throw new RuntimeException("The Vectorized Database Model is either not defined or not supported");
+        }
 
     }
 
     @Override
-    public List<Embedding> findKNearest(String embeddingApiKey, String vectorDatabaseApiKey, String query, int k) {
-        final var queryEmbedding = Embedding.builder()
-                .index(query)
-                .values(openAiEmbeddingReadPort.getEmbedding(embeddingApiKey, query))
-                .build();
+    public List<Embedding> findKNearest(String query, int k) {
+        Embedding queryEmbedding;
+        if (embeddingModel.equals(EmbeddingModel.OPEN_AI)) {
+            queryEmbedding = Embedding.builder()
+                    .index(query)
+                    .values(openAiEmbeddingReadPort.getEmbedding(query, query))
+                    .build();
+//        } else if (embeddingModel.equals(EmbeddingModel.BERT)) {
 
-        return vectorDatabaseReadPort.findKNearest(vectorDatabaseApiKey, queryEmbedding.getValues(), k);
+        } else {
+            throw new RuntimeException("The Embedding Model is either not defined or not supported");
+        }
+
+        if (vectorDatabaseModel.equals(VectorDatabaseModel.PINECONE)) {
+            return vectorDatabaseReadPort.findKNearest(vectorDatabaseApiKey, queryEmbedding.getValues(), k);
+        } else {
+            throw new RuntimeException("The Vectorized Database Model is either not defined or not supported");
+        }
+
     }
 
     private List<String> chunkDocument(String input, int chunkSize, int chunkOverlap) {
@@ -72,7 +106,7 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
 
         input = convertStringToAscii(input);
 
-        if (input == null || input.trim().isEmpty() || chunkSize <= 0 || chunkOverlap >= chunkSize || MAX_BYTES_PER_CHUNK <= 0) {
+        if (input == null || input.trim().isEmpty() || chunkSize <= 0 || chunkOverlap >= chunkSize) {
             log.warn("Could not get chunks out of " + input + " with chunk size " + chunkSize + ", chunk overlap " + chunkOverlap + ", and max bytes per chunk " + MAX_BYTES_PER_CHUNK);
             return chunks;
         }
@@ -117,12 +151,18 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
 
     @Override
     public String query(QueryCompletionModelRequest request) {
-        final var embeddings = findKNearest(
-                request.getEmbeddingApiKey(),
-                request.getVectorDatabaseApiKey(),
-                request.getQuery(),
-                request.getK()
-        );
+        List<Embedding> embeddings;
+        if (embeddingModel.equals(EmbeddingModel.OPEN_AI)){
+            embeddings = findKNearest(
+                    embeddingApiKey,
+                    request.getK()
+            );
+//        } else if (embeddingModel.equals(EmbeddingModel.BERT)) {
+
+        } else {
+            throw new RuntimeException("The Embedding Model is either not defined or not supported");
+        }
+
         final var query = Query.builder()
                 .context(
                         embeddings.stream()
@@ -131,6 +171,11 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
                 ).message(request.getQuery())
                 .build();
 
-        return openAiCompletionPort.getCompletion(request.getCompletionApiKey(), query);
+        if (completionModel.equals(CompletionModel.OPEN_AI)) {
+            return openAiCompletionPort.getCompletion(completionApiKey, query);
+        }  else {
+            throw new RuntimeException("The Completion Model is either not defined or not supported");
+        }
+
     }
 }

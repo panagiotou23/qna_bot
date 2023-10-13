@@ -26,31 +26,19 @@ public class TestRestController {
 
     @PostMapping("/open-ai/embedding")
     public void getEmbedding(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam String embeddingApiKey,
-            @RequestParam String vectorDatabaseApiKey,
-            @RequestParam int chunkSize,
-            @RequestParam int chunkOverlap
+            @RequestParam("file") MultipartFile file
     ) {
         createEmbeddingsUseCase.createEmbeddings(
-                file,
-                embeddingApiKey,
-                vectorDatabaseApiKey,
-                chunkSize,
-                chunkOverlap
+                file
         );
     }
 
     @GetMapping("/open-ai/embedding")
     List<EmbeddingDto> findKNearest(
-            @RequestParam String embeddingApiKey,
-            @RequestParam String vectorDatabaseApiKey,
             @RequestParam String query,
             @RequestParam int k
     ) {
         return getEmbeddingsUseCase.findKNearest(
-                        embeddingApiKey,
-                        vectorDatabaseApiKey,
                         query,
                         k
                 ).stream()

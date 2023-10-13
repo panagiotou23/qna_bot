@@ -79,13 +79,11 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
     @Override
     public List<Embedding> findKNearest(String query, int k) {
         Embedding queryEmbedding;
-        if (embeddingModel.equals(EmbeddingModel.OPEN_AI)) {
+        if (embeddingModel != null) {
             queryEmbedding = Embedding.builder()
                     .index(query)
                     .values(embeddingReadPort.getEmbedding(embeddingModel, embeddingApiKey, query))
                     .build();
-//        } else if (embeddingModel.equals(EmbeddingModel.BERT)) {
-
         } else {
             throw new RuntimeException("The Embedding Model is either not defined or not supported");
         }

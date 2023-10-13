@@ -43,7 +43,7 @@ public class TestRestController {
             @RequestParam String query,
             @RequestParam int k
     ) {
-        getEmbeddingsUseCase.setEmbeddingModel(EmbeddingModel.OPEN_AI);
+        getEmbeddingsUseCase.setEmbeddingModel(EmbeddingModel.BERT);
         getEmbeddingsUseCase.setVectorDatabaseModel(VectorDatabaseModel.PINECONE);
         return getEmbeddingsUseCase.findKNearest(
                         query,

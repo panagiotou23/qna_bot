@@ -4,10 +4,7 @@ import com.ibm.icu.text.Transliterator;
 import com.thesis.qnabot.api.embedding.application.port.in.CreateEmbeddingsUseCase;
 import com.thesis.qnabot.api.embedding.application.port.in.GetEmbeddingsUseCase;
 import com.thesis.qnabot.api.embedding.application.port.in.QueryCompletionModelUseCase;
-import com.thesis.qnabot.api.embedding.application.port.out.OpenAiCompletionPort;
-import com.thesis.qnabot.api.embedding.application.port.out.OpenAiEmbeddingReadPort;
-import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseReadPort;
-import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseWritePort;
+import com.thesis.qnabot.api.embedding.application.port.out.*;
 import com.thesis.qnabot.api.embedding.domain.*;
 import com.thesis.qnabot.api.embedding.domain.request.QueryCompletionModelRequest;
 import com.thesis.qnabot.util.Utils;
@@ -28,8 +25,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUseCase, QueryCompletionModelUseCase {
 
-    private final OpenAiEmbeddingReadPort openAiEmbeddingReadPort;
-    private final OpenAiCompletionPort openAiCompletionPort;
+    private final EmbeddingReadPort embeddingReadPort;
+    private final CompletionPort completionPort;
     private final VectorDatabaseWritePort vectorDatabaseWritePort;
     private final VectorDatabaseReadPort vectorDatabaseReadPort;
 
@@ -59,22 +56,20 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
         );
 
         List<Embedding> embeddings;
-        if (embeddingModel.equals(EmbeddingModel.OPEN_AI)) {
+        if (embeddingModel != null) {
             embeddings = chucks.stream()
                     .map(input ->
                             Embedding.builder()
                                     .index(input)
-                                    .values(openAiEmbeddingReadPort.getEmbedding(embeddingApiKey, input))
+                                    .values(embeddingReadPort.getEmbedding(embeddingModel, embeddingApiKey, input))
                                     .build()
                     ).collect(Collectors.toList());
-//        } else if (embeddingModel.equals(EmbeddingModel.BERT)) {
-
         } else {
             throw new RuntimeException("The Embedding Model is either not defined or not supported");
         }
 
         if (vectorDatabaseModel.equals(VectorDatabaseModel.PINECONE)) {
-            vectorDatabaseWritePort.saveEmbeddings(vectorDatabaseApiKey, embeddings);
+            vectorDatabaseWritePort.saveEmbeddings(embeddingModel, vectorDatabaseApiKey, embeddings);
         } else {
             throw new RuntimeException("The Vectorized Database Model is either not defined or not supported");
         }
@@ -87,7 +82,7 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
         if (embeddingModel.equals(EmbeddingModel.OPEN_AI)) {
             queryEmbedding = Embedding.builder()
                     .index(query)
-                    .values(openAiEmbeddingReadPort.getEmbedding(embeddingApiKey, query))
+                    .values(embeddingReadPort.getEmbedding(embeddingModel, embeddingApiKey, query))
                     .build();
 //        } else if (embeddingModel.equals(EmbeddingModel.BERT)) {
 
@@ -96,7 +91,7 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
         }
 
         if (vectorDatabaseModel.equals(VectorDatabaseModel.PINECONE)) {
-            return vectorDatabaseReadPort.findKNearest(vectorDatabaseApiKey, queryEmbedding.getValues(), k);
+            return vectorDatabaseReadPort.findKNearest(embeddingModel, vectorDatabaseApiKey, queryEmbedding.getValues(), k);
         } else {
             throw new RuntimeException("The Vectorized Database Model is either not defined or not supported");
         }
@@ -174,7 +169,7 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
                 .build();
 
         if (completionModel.equals(CompletionModel.OPEN_AI)) {
-            return openAiCompletionPort.getCompletion(completionApiKey, query);
+            return completionPort.getCompletion(completionApiKey, query);
         }  else {
             throw new RuntimeException("The Completion Model is either not defined or not supported");
         }

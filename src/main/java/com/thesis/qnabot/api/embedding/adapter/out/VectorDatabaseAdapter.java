@@ -1,11 +1,11 @@
 package com.thesis.qnabot.api.embedding.adapter.out;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import com.thesis.qnabot.api.embedding.adapter.out.dto.pinecone.*;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseReadPort;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseWritePort;
 import com.thesis.qnabot.api.embedding.domain.Embedding;
+import com.thesis.qnabot.api.embedding.domain.EmbeddingModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.Mapper;
@@ -17,6 +17,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.IllegalFormatCodePointException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,18 +28,16 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    private final String PINECONE_DB_URL = "https://thesis-initial-test-aef333f.svc.gcp-starter.pinecone.io";
-
     private final int VECTORS_CHUNK_SIZE = 100;
 
     @Override
-    public void saveEmbeddings(String apiKey, List<Embedding> embeddings) {
+    public void saveEmbeddings(EmbeddingModel embeddingModel, String apiKey, List<Embedding> embeddings) {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Api-Key", apiKey);
         headers.add("accept", "application/json");
         headers.add("Content-Type", "application/json");
 
-        final var url = PINECONE_DB_URL + "/vectors/upsert";
+        final var url = getUrl(embeddingModel) + "/vectors/upsert";
 
         final var embeddingsChunked = Lists.partition(embeddings, VECTORS_CHUNK_SIZE);
         final int[] totalEmbeddings = {0};
@@ -63,14 +62,14 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
     }
 
     @Override
-    public List<Embedding> findKNearest(String apiKey, List<Double> values, int k) {
+    public List<Embedding> findKNearest(EmbeddingModel embeddingModel, String apiKey, List<Double> values, int k) {
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Api-Key", apiKey);
         headers.add("accept", "application/json");
         headers.add("Content-Type", "application/json");
 
-        final var url = PINECONE_DB_URL + "/query";
+        final var url = getUrl(embeddingModel) + "/query";
 
         final var body = PineconeFindKNearestRequestDto.builder()
                 .vector(values)
@@ -92,6 +91,17 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
                 .collect(Collectors.toList());
     }
 
+    private String getUrl(EmbeddingModel embeddingModel) {
+        String url;
+        if (embeddingModel.equals(EmbeddingModel.OPEN_AI)) {
+            url = "https://open-ai-1536-cosine-63159e9.svc.eu-west4-gcp.pinecone.io";
+        } else if (embeddingModel.equals(EmbeddingModel.BERT)) {
+            url = "https://thesis-bert-test-aef333f.svc.gcp-starter.pinecone.io";
+        } else {
+            throw new RuntimeException("Not a Vectorized Database Url for this embedding model");
+        }
+        return url;
+    }
 
     @Mapper
     abstract static class VectorDatabaseAdapterMapper {

@@ -1,8 +1,11 @@
 package com.thesis.qnabot.api.embedding.adapter.out;
 
+import com.thesis.qnabot.api.embedding.adapter.out.dto.BertEmbeddingRequestDto;
+import com.thesis.qnabot.api.embedding.adapter.out.dto.BertEmbeddingResponseDto;
 import com.thesis.qnabot.api.embedding.adapter.out.dto.open_ai.*;
-import com.thesis.qnabot.api.embedding.application.port.out.OpenAiCompletionPort;
-import com.thesis.qnabot.api.embedding.application.port.out.OpenAiEmbeddingReadPort;
+import com.thesis.qnabot.api.embedding.application.port.out.CompletionPort;
+import com.thesis.qnabot.api.embedding.application.port.out.EmbeddingReadPort;
+import com.thesis.qnabot.api.embedding.domain.EmbeddingModel;
 import com.thesis.qnabot.api.embedding.domain.Query;
 import lombok.RequiredArgsConstructor;
 import org.mapstruct.Mapper;
@@ -20,21 +23,32 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
-public class OpenAiAdapter implements OpenAiEmbeddingReadPort, OpenAiCompletionPort {
+public class EmbeddingAdapter implements EmbeddingReadPort, CompletionPort {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
     private static final String OPENAI_URL = "https://api.openai.com/v1";
+    private static final String BERT_URL = "https://api.nlpcloud.io/v1/paraphrase-multilingual-mpnet-base-v2";
 
     private static final String EMBEDDING_MODEL = "text-embedding-ada-002";
 
     @Override
-    public List<Double> getEmbedding(final String apiKey, String input) {
+    public List<Double> getEmbedding(EmbeddingModel model, final String apiKey, String input) {
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", "Bearer " + apiKey);
         headers.add("Content-Type", "application/json");
 
+        if (model.equals(EmbeddingModel.OPEN_AI)) {
+            return getOpenAiEmbedding(headers, input);
+        } else if (model.equals(EmbeddingModel.BERT)) {
+            return getBertEmbedding(headers, input);
+        } else {
+            throw new RuntimeException("The Embedding Model is either not defined or not supported");
+        }
+    }
+
+    private List<Double> getOpenAiEmbedding(HttpHeaders headers, String input) {
         final var url = OPENAI_URL + "/embeddings";
         OpenAiEmbeddingRequestDto body = OpenAiAdapterMapper.INSTANCE.fromDomain(EMBEDDING_MODEL, input);
 
@@ -49,7 +63,30 @@ public class OpenAiAdapter implements OpenAiEmbeddingReadPort, OpenAiCompletionP
             throw new RuntimeException("Could not get response from OpenAI");
         }
         return response.getData().get(0).getEmbedding();
+    }
 
+    private List<Double> getBertEmbedding(HttpHeaders headers, String input) {
+        try {
+            Thread.sleep(400);
+        } catch (Exception ignored) {
+        }
+
+        final var url = BERT_URL + "/embeddings";
+        final var body = BertEmbeddingRequestDto.builder()
+                .sentences(List.of(input))
+                .build();
+
+        final var response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                new HttpEntity<>(body, headers),
+                BertEmbeddingResponseDto.class
+        ).getBody();
+
+        if (response == null) {
+            throw new RuntimeException("Could not get response from OpenAI");
+        }
+        return response.getEmbeddings().get(0);
     }
 
     @Override
@@ -91,7 +128,6 @@ public class OpenAiAdapter implements OpenAiEmbeddingReadPort, OpenAiCompletionP
         @Mapping(target = "messages", expression = "java( getMessagesFromQuery(domain) )")
         @Mapping(target = "model", ignore = true)
         abstract OpenAiCompletionRequestDto fromDomain(Query domain);
-
 
         List<OpenAiCompletionMessageDto> getMessagesFromQuery(Query query) {
             final var messages = new ArrayList<OpenAiCompletionMessageDto>();

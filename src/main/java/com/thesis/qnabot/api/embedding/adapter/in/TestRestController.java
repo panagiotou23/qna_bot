@@ -31,7 +31,8 @@ public class TestRestController {
     public void getEmbedding(
             @RequestParam("file") MultipartFile file
     ) {
-        createEmbeddingsUseCase.setEmbeddingModel(EmbeddingModel.OPEN_AI);
+        createEmbeddingsUseCase.setEmbeddingModel(EmbeddingModel.BERT);
+        createEmbeddingsUseCase.setVectorDatabaseModel(VectorDatabaseModel.PINECONE);
         createEmbeddingsUseCase.createEmbeddings(
                 file
         );

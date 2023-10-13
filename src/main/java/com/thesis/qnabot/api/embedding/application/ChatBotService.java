@@ -12,6 +12,7 @@ import com.thesis.qnabot.api.embedding.domain.*;
 import com.thesis.qnabot.api.embedding.domain.request.QueryCompletionModelRequest;
 import com.thesis.qnabot.util.Utils;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Setter
 @Slf4j
 public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUseCase, QueryCompletionModelUseCase {
 
@@ -35,13 +37,13 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
     private int chunkSize = 100;
     private int chunkOverlap = 25;
 
-    private EmbeddingModel embeddingModel = EmbeddingModel.OPEN_AI;
-    private CompletionModel completionModel = CompletionModel.OPEN_AI;
-    private VectorDatabaseModel vectorDatabaseModel = VectorDatabaseModel.PINECONE;
+    private EmbeddingModel embeddingModel;
+    private CompletionModel completionModel;
+    private VectorDatabaseModel vectorDatabaseModel;
 
-    private String embeddingApiKey = "api-key";
-    private String vectorDatabaseApiKey = "api-key";
-    private String completionApiKey = "api-key";
+    private String embeddingApiKey;
+    private String vectorDatabaseApiKey;
+    private String completionApiKey;
 
     private final int MAX_BYTES_PER_CHUNK = 511;
 
@@ -85,7 +87,7 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
         if (embeddingModel.equals(EmbeddingModel.OPEN_AI)) {
             queryEmbedding = Embedding.builder()
                     .index(query)
-                    .values(openAiEmbeddingReadPort.getEmbedding(query, query))
+                    .values(openAiEmbeddingReadPort.getEmbedding(embeddingApiKey, query))
                     .build();
 //        } else if (embeddingModel.equals(EmbeddingModel.BERT)) {
 

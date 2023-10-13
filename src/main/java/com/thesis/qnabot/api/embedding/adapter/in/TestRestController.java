@@ -5,7 +5,10 @@ import com.thesis.qnabot.api.embedding.adapter.in.dto.QueryCompletionModelReques
 import com.thesis.qnabot.api.embedding.application.port.in.CreateEmbeddingsUseCase;
 import com.thesis.qnabot.api.embedding.application.port.in.GetEmbeddingsUseCase;
 import com.thesis.qnabot.api.embedding.application.port.in.QueryCompletionModelUseCase;
+import com.thesis.qnabot.api.embedding.domain.CompletionModel;
 import com.thesis.qnabot.api.embedding.domain.Embedding;
+import com.thesis.qnabot.api.embedding.domain.EmbeddingModel;
+import com.thesis.qnabot.api.embedding.domain.VectorDatabaseModel;
 import com.thesis.qnabot.api.embedding.domain.request.QueryCompletionModelRequest;
 import lombok.RequiredArgsConstructor;
 import org.mapstruct.Mapper;
@@ -28,6 +31,7 @@ public class TestRestController {
     public void getEmbedding(
             @RequestParam("file") MultipartFile file
     ) {
+        createEmbeddingsUseCase.setEmbeddingModel(EmbeddingModel.OPEN_AI);
         createEmbeddingsUseCase.createEmbeddings(
                 file
         );
@@ -38,6 +42,8 @@ public class TestRestController {
             @RequestParam String query,
             @RequestParam int k
     ) {
+        getEmbeddingsUseCase.setEmbeddingModel(EmbeddingModel.OPEN_AI);
+        getEmbeddingsUseCase.setVectorDatabaseModel(VectorDatabaseModel.PINECONE);
         return getEmbeddingsUseCase.findKNearest(
                         query,
                         k
@@ -48,6 +54,9 @@ public class TestRestController {
 
     @PostMapping("open-ai/query-completion-model")
     String response(@RequestBody QueryCompletionModelRequestDto dto) {
+        queryCompletionModelUseCase.setEmbeddingModel(EmbeddingModel.OPEN_AI);
+        queryCompletionModelUseCase.setVectorDatabaseModel(VectorDatabaseModel.PINECONE);
+        queryCompletionModelUseCase.setCompletionModel(CompletionModel.OPEN_AI);
         return queryCompletionModelUseCase.query(
                 TestRestControllerMapper.INSTANCE.toDomain(dto)
         );

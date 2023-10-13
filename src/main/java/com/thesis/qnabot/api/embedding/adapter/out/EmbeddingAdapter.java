@@ -1,10 +1,14 @@
 package com.thesis.qnabot.api.embedding.adapter.out;
 
-import com.thesis.qnabot.api.embedding.adapter.out.dto.BertEmbeddingRequestDto;
-import com.thesis.qnabot.api.embedding.adapter.out.dto.BertEmbeddingResponseDto;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.thesis.qnabot.api.embedding.adapter.out.dto.nlp_cloud.NlpCloudBertEmbeddingRequestDto;
+import com.thesis.qnabot.api.embedding.adapter.out.dto.nlp_cloud.NlpCloudBertEmbeddingResponseDto;
+import com.thesis.qnabot.api.embedding.adapter.out.dto.nlp_cloud.NlpCloudRobertaCompletionRequestDto;
+import com.thesis.qnabot.api.embedding.adapter.out.dto.nlp_cloud.NlpCloudRobertaCompletionResponseDto;
 import com.thesis.qnabot.api.embedding.adapter.out.dto.open_ai.*;
 import com.thesis.qnabot.api.embedding.application.port.out.CompletionPort;
 import com.thesis.qnabot.api.embedding.application.port.out.EmbeddingReadPort;
+import com.thesis.qnabot.api.embedding.domain.CompletionModel;
 import com.thesis.qnabot.api.embedding.domain.EmbeddingModel;
 import com.thesis.qnabot.api.embedding.domain.Query;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +32,7 @@ public class EmbeddingAdapter implements EmbeddingReadPort, CompletionPort {
     private final RestTemplate restTemplate = new RestTemplate();
 
     private static final String OPENAI_URL = "https://api.openai.com/v1";
-    private static final String BERT_URL = "https://api.nlpcloud.io/v1/paraphrase-multilingual-mpnet-base-v2";
+    private static final String NLP_CLOUD_URL = "https://api.nlpcloud.io/v1";
 
     private static final String EMBEDDING_MODEL = "text-embedding-ada-002";
 
@@ -50,7 +54,7 @@ public class EmbeddingAdapter implements EmbeddingReadPort, CompletionPort {
 
     private List<Double> getOpenAiEmbedding(HttpHeaders headers, String input) {
         final var url = OPENAI_URL + "/embeddings";
-        OpenAiEmbeddingRequestDto body = OpenAiAdapterMapper.INSTANCE.fromDomain(EMBEDDING_MODEL, input);
+        OpenAiEmbeddingRequestDto body = OpenAiAdapterMapper.INSTANCE.fromDomainToOpenAi(EMBEDDING_MODEL, input);
 
         OpenAiEmbeddingResponseDto response = restTemplate.exchange(
                 url,
@@ -71,8 +75,8 @@ public class EmbeddingAdapter implements EmbeddingReadPort, CompletionPort {
         } catch (Exception ignored) {
         }
 
-        final var url = BERT_URL + "/embeddings";
-        final var body = BertEmbeddingRequestDto.builder()
+        final var url = NLP_CLOUD_URL + "/paraphrase-multilingual-mpnet-base-v2/embeddings";
+        final var body = NlpCloudBertEmbeddingRequestDto.builder()
                 .sentences(List.of(input))
                 .build();
 
@@ -80,7 +84,7 @@ public class EmbeddingAdapter implements EmbeddingReadPort, CompletionPort {
                 url,
                 HttpMethod.POST,
                 new HttpEntity<>(body, headers),
-                BertEmbeddingResponseDto.class
+                NlpCloudBertEmbeddingResponseDto.class
         ).getBody();
 
         if (response == null) {
@@ -90,14 +94,42 @@ public class EmbeddingAdapter implements EmbeddingReadPort, CompletionPort {
     }
 
     @Override
-    public String getCompletion(String apiKey, Query query) {
+    public String getCompletion(CompletionModel completionModel, String apiKey, Query query) {
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", "Bearer " + apiKey);
         headers.add("Content-Type", "application/json");
 
+        if (completionModel.equals(CompletionModel.OPEN_AI)) {
+            return getOpenAiCompletion(query, headers);
+        } else if (completionModel.equals(CompletionModel.ROBERTA)) {
+            return getRobertaCompletion(query, headers);
+        } else {
+            throw new RuntimeException("The Completion Model is either not defined or not supported");
+        }
+    }
+
+    private String getRobertaCompletion(Query query, HttpHeaders headers) {
+        final var url = NLP_CLOUD_URL + "/roberta-base-squad2/question";
+        final var body = OpenAiAdapterMapper.INSTANCE.fromDomainToNlpCloud(query);
+
+        final var response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                new HttpEntity<>(body, headers),
+                NlpCloudRobertaCompletionResponseDto.class
+        ).getBody();
+
+        if (response == null) {
+            throw new RuntimeException("Could not get completion for query " + query.getMessage());
+        }
+
+        return response.getAnswer();
+    }
+
+    private String getOpenAiCompletion(Query query, HttpHeaders headers) {
         final var url = OPENAI_URL + "/chat/completions";
-        final var body = OpenAiAdapterMapper.INSTANCE.fromDomain(query);
+        final var body = OpenAiAdapterMapper.INSTANCE.fromDomainToOpenAi(query);
 
         final var response = restTemplate.exchange(
                 url,
@@ -123,11 +155,15 @@ public class EmbeddingAdapter implements EmbeddingReadPort, CompletionPort {
         private static final OpenAiAdapterMapper INSTANCE =
                 Mappers.getMapper(OpenAiAdapterMapper.class);
 
-        abstract OpenAiEmbeddingRequestDto fromDomain(String model, String input);
+        abstract OpenAiEmbeddingRequestDto fromDomainToOpenAi(String model, String input);
 
         @Mapping(target = "messages", expression = "java( getMessagesFromQuery(domain) )")
         @Mapping(target = "model", ignore = true)
-        abstract OpenAiCompletionRequestDto fromDomain(Query domain);
+        abstract OpenAiCompletionRequestDto fromDomainToOpenAi(Query domain);
+
+        @Mapping(target = "question", source = "message")
+        @Mapping(target = "context", expression = "java(getContext(domain.getContext()))")
+        abstract NlpCloudRobertaCompletionRequestDto fromDomainToNlpCloud(Query domain);
 
         List<OpenAiCompletionMessageDto> getMessagesFromQuery(Query query) {
             final var messages = new ArrayList<OpenAiCompletionMessageDto>();
@@ -160,5 +196,12 @@ public class EmbeddingAdapter implements EmbeddingReadPort, CompletionPort {
 //                    .build()
             return messages;
         }
+
+        String getContext(List<String> context) {
+            final var builder = new StringBuilder();
+            context.forEach(c -> builder.append("\"").append(c).append("\""));
+            return builder.toString();
+        }
+
     }
 }

@@ -147,13 +147,11 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
     @Override
     public String query(QueryCompletionModelRequest request) {
         List<Embedding> embeddings;
-        if (embeddingModel.equals(EmbeddingModel.OPEN_AI)){
+        if (embeddingModel != null){
             embeddings = findKNearest(
                     embeddingApiKey,
                     request.getK()
             );
-//        } else if (embeddingModel.equals(EmbeddingModel.BERT)) {
-
         } else {
             throw new RuntimeException("The Embedding Model is either not defined or not supported");
         }
@@ -166,8 +164,8 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
                 ).message(request.getQuery())
                 .build();
 
-        if (completionModel.equals(CompletionModel.OPEN_AI)) {
-            return completionPort.getCompletion(completionApiKey, query);
+        if (completionModel != null) {
+            return completionPort.getCompletion(completionModel, completionApiKey, query);
         }  else {
             throw new RuntimeException("The Completion Model is either not defined or not supported");
         }

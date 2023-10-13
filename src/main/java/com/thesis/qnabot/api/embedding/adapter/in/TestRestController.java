@@ -55,9 +55,9 @@ public class TestRestController {
 
     @PostMapping("open-ai/query-completion-model")
     String response(@RequestBody QueryCompletionModelRequestDto dto) {
-        queryCompletionModelUseCase.setEmbeddingModel(EmbeddingModel.OPEN_AI);
+        queryCompletionModelUseCase.setEmbeddingModel(EmbeddingModel.BERT);
         queryCompletionModelUseCase.setVectorDatabaseModel(VectorDatabaseModel.PINECONE);
-        queryCompletionModelUseCase.setCompletionModel(CompletionModel.OPEN_AI);
+        queryCompletionModelUseCase.setCompletionModel(CompletionModel.ROBERTA);
         return queryCompletionModelUseCase.query(
                 TestRestControllerMapper.INSTANCE.toDomain(dto)
         );

@@ -106,8 +106,8 @@ public class CompletionAdapter implements CompletionPort {
                     OpenAiCompletionMessageDto.builder()
                             .role("system")
                             .content("You are a helpful assistant. " +
-                                    "Your job is to answer questions based on the context given, " +
-                                    "with as short of a response as possible. " +
+                                    "Your job is to answer questions based on the context given. " +
+                                    "You have to give the shortest answer. " +
                                     "If you don't know the answer to the question ask you ALWAYS say 'I don't know the answer.'")
                             .build()
             );
@@ -139,7 +139,7 @@ public class CompletionAdapter implements CompletionPort {
             final var builder = new StringBuilder();
             builder.append("\"You are a helpful assistant. " +
                     "Your job is to answer questions based on the context given, " +
-                    "with as short of a response as possible. " +
+                    "You have to give the shortest answer. " +
                     "If you don't know the answer to the question ask you ALWAYS say 'I don't know the answer.'\"\n");
             context.forEach(c -> builder.append("\"").append(c).append("\"\n"));
             return builder.toString();

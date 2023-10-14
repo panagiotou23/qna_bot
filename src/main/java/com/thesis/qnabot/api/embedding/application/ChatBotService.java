@@ -2,9 +2,11 @@ package com.thesis.qnabot.api.embedding.application;
 
 import com.ibm.icu.text.Transliterator;
 import com.thesis.qnabot.api.embedding.application.port.in.CreateEmbeddingsUseCase;
-import com.thesis.qnabot.api.embedding.application.port.in.GetEmbeddingsUseCase;
 import com.thesis.qnabot.api.embedding.application.port.in.QueryCompletionModelUseCase;
-import com.thesis.qnabot.api.embedding.application.port.out.*;
+import com.thesis.qnabot.api.embedding.application.port.out.CompletionPort;
+import com.thesis.qnabot.api.embedding.application.port.out.EmbeddingReadPort;
+import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseReadPort;
+import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseWritePort;
 import com.thesis.qnabot.api.embedding.domain.*;
 import com.thesis.qnabot.api.embedding.domain.request.QueryCompletionModelRequest;
 import com.thesis.qnabot.util.Utils;
@@ -23,7 +25,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Setter
 @Slf4j
-public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUseCase, QueryCompletionModelUseCase {
+public class ChatBotService implements CreateEmbeddingsUseCase, QueryCompletionModelUseCase {
 
     private final EmbeddingReadPort embeddingReadPort;
     private final CompletionPort completionPort;
@@ -77,6 +79,33 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
     }
 
     @Override
+    public String query(QueryCompletionModelRequest request) {
+        List<Embedding> embeddings;
+        if (embeddingModel != null){
+            embeddings = findKNearest(
+                    embeddingApiKey,
+                    request.getK()
+            );
+        } else {
+            throw new RuntimeException("The Embedding Model is either not defined or not supported");
+        }
+
+        final var query = Query.builder()
+                .context(
+                        embeddings.stream()
+                                .map(Embedding::getIndex)
+                                .collect(Collectors.toList())
+                ).message(request.getQuery())
+                .build();
+
+        if (completionModel != null) {
+            return completionPort.getCompletion(completionModel, completionApiKey, query);
+        }  else {
+            throw new RuntimeException("The Completion Model is either not defined or not supported");
+        }
+
+    }
+
     public List<Embedding> findKNearest(String query, int k) {
         Embedding queryEmbedding;
         if (embeddingModel != null) {
@@ -144,31 +173,4 @@ public class ChatBotService implements CreateEmbeddingsUseCase, GetEmbeddingsUse
         return trans.transliterate(str);
     }
 
-    @Override
-    public String query(QueryCompletionModelRequest request) {
-        List<Embedding> embeddings;
-        if (embeddingModel != null){
-            embeddings = findKNearest(
-                    embeddingApiKey,
-                    request.getK()
-            );
-        } else {
-            throw new RuntimeException("The Embedding Model is either not defined or not supported");
-        }
-
-        final var query = Query.builder()
-                .context(
-                        embeddings.stream()
-                                .map(Embedding::getIndex)
-                                .collect(Collectors.toList())
-                ).message(request.getQuery())
-                .build();
-
-        if (completionModel != null) {
-            return completionPort.getCompletion(completionModel, completionApiKey, query);
-        }  else {
-            throw new RuntimeException("The Completion Model is either not defined or not supported");
-        }
-
-    }
 }

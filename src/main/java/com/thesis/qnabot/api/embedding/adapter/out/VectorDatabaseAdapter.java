@@ -5,7 +5,7 @@ import com.thesis.qnabot.api.embedding.adapter.out.dto.pinecone.*;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseReadPort;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseWritePort;
 import com.thesis.qnabot.api.embedding.domain.Embedding;
-import com.thesis.qnabot.api.embedding.domain.enums.EmbeddingModel;
+import com.thesis.qnabot.api.embedding.domain.enums.KnnAlgorithm;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.Mapper;
@@ -28,19 +28,19 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
     private final RestTemplate restTemplate = new RestTemplate();
 
     private final int VECTORS_CHUNK_SIZE = 100;
+    private final String PINECONE_INDEX_URL = "https://thesis-83dacea.svc.gcp-starter.pinecone.io";
+    private final String PINECONE_URL = "https://controller.gcp-starter.pinecone.io";
 
     @Override
-    public void saveEmbeddings(EmbeddingModel embeddingModel, String apiKey, List<Embedding> embeddings) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Api-Key", apiKey);
-        headers.add("accept", "application/json");
-        headers.add("Content-Type", "application/json");
+    public void saveEmbeddings(String apiKey, List<Embedding> embeddings) {
+        final var headers = getHeaders(apiKey);
 
-        final var url = getUrl(embeddingModel) + "/vectors/upsert";
+        final var url = PINECONE_INDEX_URL + "/vectors/upsert";
 
         final var embeddingsChunked = Lists.partition(embeddings, VECTORS_CHUNK_SIZE);
         final int[] totalEmbeddings = {0};
         embeddingsChunked.forEach(embeddingsChunk -> {
+            log.info("Storing " + (totalEmbeddings[0] + embeddingsChunk.size()) + " of " + embeddings.size() + " total embeddings");
             final var body = PineconeUpsertVectorsRequestDto.builder()
                     .vectors(embeddingsChunk.stream().map(VectorDatabaseAdapterMapper.INSTANCE::fromDomain).collect(Collectors.toList()))
                     .build();
@@ -61,14 +61,44 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
     }
 
     @Override
-    public List<Embedding> findKNearest(EmbeddingModel embeddingModel, String apiKey, List<Double> values, int k) {
+    public void deleteAllEmbeddings(String apiKey) {
+        final var headers = getHeaders(apiKey);
+        final var url = PINECONE_URL + "/databases/thesis";
+        restTemplate.exchange(
+                url,
+                HttpMethod.DELETE,
+                new HttpEntity<>(headers),
+                PineconeUpsertVectorResponseDto.class
+        );
+    }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Api-Key", apiKey);
-        headers.add("accept", "application/json");
-        headers.add("Content-Type", "application/json");
+    @Override
+    public void createDatabase(String apiKey, Integer embeddingSize, KnnAlgorithm knnAlgorithm) {
+        if (knnAlgorithm == null) {
+            throw new RuntimeException("KNN Algorithm is not defined");
+        }
 
-        final var url = getUrl(embeddingModel) + "/query";
+        final var headers = getHeaders(apiKey);
+        final var url = PINECONE_URL + "/databases";
+
+        final var body = PineconeCreateIndexRequestDto.builder()
+                .dimension(embeddingSize)
+                .metric(knnAlgorithm.getPineconeValue())
+                .build();
+        restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                new HttpEntity<>(body, headers),
+                PineconeUpsertVectorResponseDto.class
+        );
+    }
+
+    @Override
+    public List<Embedding> findKNearest(String apiKey, List<Double> values, int k) {
+
+        final var headers = getHeaders(apiKey);
+
+        final var url = PINECONE_INDEX_URL + "/query";
 
         final var body = PineconeFindKNearestRequestDto.builder()
                 .vector(values)
@@ -90,16 +120,12 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
                 .collect(Collectors.toList());
     }
 
-    private String getUrl(EmbeddingModel embeddingModel) {
-        String url;
-        if (embeddingModel.equals(EmbeddingModel.OPEN_AI)) {
-            url = "https://thesis-open-ai-test-aef333f.svc.gcp-starter.pinecone.io";
-        } else if (embeddingModel.equals(EmbeddingModel.BERT)) {
-            url = "https://thesis-bert-test-aef333f.svc.gcp-starter.pinecone.io";
-        } else {
-            throw new RuntimeException("Not a Vectorized Database Url for this embedding model");
-        }
-        return url;
+    private static HttpHeaders getHeaders(String apiKey) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Api-Key", apiKey);
+        headers.add("accept", "application/json");
+        headers.add("Content-Type", "application/json");
+        return headers;
     }
 
     @Mapper

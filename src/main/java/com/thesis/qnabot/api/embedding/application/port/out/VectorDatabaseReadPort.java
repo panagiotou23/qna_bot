@@ -6,5 +6,5 @@ import com.thesis.qnabot.api.embedding.domain.enums.EmbeddingModel;
 import java.util.List;
 
 public interface VectorDatabaseReadPort {
-    List<Embedding> findKNearest(EmbeddingModel embeddingModel, String vectorDatabaseApiKey, List<Double> values, int k);
+    List<Embedding> findKNearest(String vectorDatabaseApiKey, List<Double> values, int k);
 }

@@ -1,19 +1,17 @@
 package com.thesis.qnabot.api.embedding.application;
 
 import com.ibm.icu.text.Transliterator;
-import com.thesis.qnabot.api.embedding.application.port.in.CreateEmbeddingsUseCase;
+import com.thesis.qnabot.api.embedding.application.port.in.EditEmbeddingsUseCase;
 import com.thesis.qnabot.api.embedding.application.port.in.QueryCompletionModelUseCase;
 import com.thesis.qnabot.api.embedding.application.port.out.CompletionPort;
 import com.thesis.qnabot.api.embedding.application.port.out.EmbeddingReadPort;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseReadPort;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseWritePort;
 import com.thesis.qnabot.api.embedding.domain.*;
-import com.thesis.qnabot.api.embedding.domain.enums.ChunkModel;
-import com.thesis.qnabot.api.embedding.domain.enums.CompletionModel;
-import com.thesis.qnabot.api.embedding.domain.enums.EmbeddingModel;
-import com.thesis.qnabot.api.embedding.domain.enums.VectorDatabaseModel;
+import com.thesis.qnabot.api.embedding.domain.enums.*;
 import com.thesis.qnabot.api.embedding.domain.request.QueryCompletionModelRequest;
 import com.thesis.qnabot.util.Utils;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -28,8 +26,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Setter
+@Getter
 @Slf4j
-public class ChatBotService implements CreateEmbeddingsUseCase, QueryCompletionModelUseCase {
+public class ChatBotService implements EditEmbeddingsUseCase, QueryCompletionModelUseCase {
 
     private final EmbeddingReadPort embeddingReadPort;
     private final CompletionPort completionPort;
@@ -44,6 +43,7 @@ public class ChatBotService implements CreateEmbeddingsUseCase, QueryCompletionM
     private CompletionModel completionModel;
     private VectorDatabaseModel vectorDatabaseModel;
     private ChunkModel chunkModel;
+    private KnnAlgorithm knnAlgorithm;
 
     private String embeddingApiKey;
     private String vectorDatabaseApiKey;
@@ -53,6 +53,13 @@ public class ChatBotService implements CreateEmbeddingsUseCase, QueryCompletionM
     public void createEmbeddings(MultipartFile file) {
 
         final var document = Utils.toString(file);
+
+        createEmbeddings(document);
+
+    }
+
+    @Override
+    public void createEmbeddings(String document) {
 
         final var chucks = chunkDocument(
                 new String(document.getBytes(StandardCharsets.US_ASCII), StandardCharsets.US_ASCII)
@@ -72,12 +79,24 @@ public class ChatBotService implements CreateEmbeddingsUseCase, QueryCompletionM
         }
 
         if (vectorDatabaseModel.equals(VectorDatabaseModel.PINECONE)) {
-            vectorDatabaseWritePort.saveEmbeddings(embeddingModel, vectorDatabaseApiKey, embeddings);
+            vectorDatabaseWritePort.saveEmbeddings(vectorDatabaseApiKey, embeddings);
         } else {
             throw new RuntimeException("The Vectorized Database Model is either not defined or not supported");
         }
 
     }
+
+
+    @Override
+    public void deleteAllEmbeddings() {
+        vectorDatabaseWritePort.deleteAllEmbeddings(vectorDatabaseApiKey);
+    }
+
+    @Override
+    public void createDatabase() {
+        vectorDatabaseWritePort.createDatabase(vectorDatabaseApiKey, embeddingModel.getEmbeddingSize(), knnAlgorithm);
+    }
+
 
     @Override
     public String query(QueryCompletionModelRequest request) {
@@ -119,7 +138,7 @@ public class ChatBotService implements CreateEmbeddingsUseCase, QueryCompletionM
         }
 
         if (vectorDatabaseModel.equals(VectorDatabaseModel.PINECONE)) {
-            return vectorDatabaseReadPort.findKNearest(embeddingModel, vectorDatabaseApiKey, queryEmbedding.getValues(), k);
+            return vectorDatabaseReadPort.findKNearest(vectorDatabaseApiKey, queryEmbedding.getValues(), k);
         } else {
             throw new RuntimeException("The Vectorized Database Model is either not defined or not supported");
         }
@@ -160,7 +179,6 @@ public class ChatBotService implements CreateEmbeddingsUseCase, QueryCompletionM
                 chunks.add(input);
             }
             log.info("Split the document into " + chunks.size() + " chunks.");
-            return chunks;
         } else if (chunkModel.equals(ChunkModel.SENTENCES)) {
             log.info("Chunking input with the Sentence Method");
 

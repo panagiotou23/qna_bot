@@ -6,7 +6,7 @@ import com.thesis.qnabot.api.embedding.adapter.out.dto.open_ai.OpenAiCompletionM
 import com.thesis.qnabot.api.embedding.adapter.out.dto.open_ai.OpenAiCompletionRequestDto;
 import com.thesis.qnabot.api.embedding.adapter.out.dto.open_ai.OpenAiCompletionResponseDto;
 import com.thesis.qnabot.api.embedding.application.port.out.CompletionPort;
-import com.thesis.qnabot.api.embedding.domain.CompletionModel;
+import com.thesis.qnabot.api.embedding.domain.enums.CompletionModel;
 import com.thesis.qnabot.api.embedding.domain.Query;
 import lombok.RequiredArgsConstructor;
 import org.mapstruct.Mapper;

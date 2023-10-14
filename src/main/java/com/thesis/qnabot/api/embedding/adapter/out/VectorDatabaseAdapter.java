@@ -5,7 +5,7 @@ import com.thesis.qnabot.api.embedding.adapter.out.dto.pinecone.*;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseReadPort;
 import com.thesis.qnabot.api.embedding.application.port.out.VectorDatabaseWritePort;
 import com.thesis.qnabot.api.embedding.domain.Embedding;
-import com.thesis.qnabot.api.embedding.domain.EmbeddingModel;
+import com.thesis.qnabot.api.embedding.domain.enums.EmbeddingModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.Mapper;
@@ -17,7 +17,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.IllegalFormatCodePointException;
 import java.util.List;
 import java.util.stream.Collectors;
 

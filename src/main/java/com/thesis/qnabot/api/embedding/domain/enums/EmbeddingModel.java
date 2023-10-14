@@ -1,4 +1,4 @@
-package com.thesis.qnabot.api.embedding.domain;
+package com.thesis.qnabot.api.embedding.domain.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

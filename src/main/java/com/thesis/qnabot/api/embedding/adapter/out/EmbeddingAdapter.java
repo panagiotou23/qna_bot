@@ -2,14 +2,11 @@ package com.thesis.qnabot.api.embedding.adapter.out;
 
 import com.thesis.qnabot.api.embedding.adapter.out.dto.nlp_cloud.NlpCloudBertEmbeddingRequestDto;
 import com.thesis.qnabot.api.embedding.adapter.out.dto.nlp_cloud.NlpCloudBertEmbeddingResponseDto;
-import com.thesis.qnabot.api.embedding.adapter.out.dto.nlp_cloud.NlpCloudRobertaCompletionRequestDto;
 import com.thesis.qnabot.api.embedding.adapter.out.dto.open_ai.*;
 import com.thesis.qnabot.api.embedding.application.port.out.EmbeddingReadPort;
-import com.thesis.qnabot.api.embedding.domain.EmbeddingModel;
-import com.thesis.qnabot.api.embedding.domain.Query;
+import com.thesis.qnabot.api.embedding.domain.enums.EmbeddingModel;
 import lombok.RequiredArgsConstructor;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -17,9 +14,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor

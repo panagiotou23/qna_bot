@@ -1,6 +1,6 @@
 package com.thesis.qnabot.api.embedding.application.port.out;
 
-import com.thesis.qnabot.api.embedding.domain.EmbeddingModel;
+import com.thesis.qnabot.api.embedding.domain.enums.EmbeddingModel;
 
 import java.util.List;
 

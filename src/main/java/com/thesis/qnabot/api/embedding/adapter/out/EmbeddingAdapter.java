@@ -1,14 +1,10 @@
 package com.thesis.qnabot.api.embedding.adapter.out;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.thesis.qnabot.api.embedding.adapter.out.dto.nlp_cloud.NlpCloudBertEmbeddingRequestDto;
 import com.thesis.qnabot.api.embedding.adapter.out.dto.nlp_cloud.NlpCloudBertEmbeddingResponseDto;
 import com.thesis.qnabot.api.embedding.adapter.out.dto.nlp_cloud.NlpCloudRobertaCompletionRequestDto;
-import com.thesis.qnabot.api.embedding.adapter.out.dto.nlp_cloud.NlpCloudRobertaCompletionResponseDto;
 import com.thesis.qnabot.api.embedding.adapter.out.dto.open_ai.*;
-import com.thesis.qnabot.api.embedding.application.port.out.CompletionPort;
 import com.thesis.qnabot.api.embedding.application.port.out.EmbeddingReadPort;
-import com.thesis.qnabot.api.embedding.domain.CompletionModel;
 import com.thesis.qnabot.api.embedding.domain.EmbeddingModel;
 import com.thesis.qnabot.api.embedding.domain.Query;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +23,7 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
-public class EmbeddingAdapter implements EmbeddingReadPort, CompletionPort {
+public class EmbeddingAdapter implements EmbeddingReadPort {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -54,7 +50,7 @@ public class EmbeddingAdapter implements EmbeddingReadPort, CompletionPort {
 
     private List<Double> getOpenAiEmbedding(HttpHeaders headers, String input) {
         final var url = OPENAI_URL + "/embeddings";
-        OpenAiEmbeddingRequestDto body = OpenAiAdapterMapper.INSTANCE.fromDomainToOpenAi(EMBEDDING_MODEL, input);
+        OpenAiEmbeddingRequestDto body = EmbeddingAdapterMapper.INSTANCE.fromDomainToOpenAi(EMBEDDING_MODEL, input);
 
         OpenAiEmbeddingResponseDto response = restTemplate.exchange(
                 url,
@@ -93,115 +89,13 @@ public class EmbeddingAdapter implements EmbeddingReadPort, CompletionPort {
         return response.getEmbeddings().get(0);
     }
 
-    @Override
-    public String getCompletion(CompletionModel completionModel, String apiKey, Query query) {
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Authorization", "Bearer " + apiKey);
-        headers.add("Content-Type", "application/json");
-
-        if (completionModel.equals(CompletionModel.OPEN_AI)) {
-            return getOpenAiCompletion(query, headers);
-        } else if (completionModel.equals(CompletionModel.ROBERTA)) {
-            return getRobertaCompletion(query, headers);
-        } else {
-            throw new RuntimeException("The Completion Model is either not defined or not supported");
-        }
-    }
-
-    private String getRobertaCompletion(Query query, HttpHeaders headers) {
-        final var url = NLP_CLOUD_URL + "/roberta-base-squad2/question";
-        final var body = OpenAiAdapterMapper.INSTANCE.fromDomainToNlpCloud(query);
-
-        final var response = restTemplate.exchange(
-                url,
-                HttpMethod.POST,
-                new HttpEntity<>(body, headers),
-                NlpCloudRobertaCompletionResponseDto.class
-        ).getBody();
-
-        if (response == null) {
-            throw new RuntimeException("Could not get completion for query " + query.getMessage());
-        }
-
-        return response.getAnswer();
-    }
-
-    private String getOpenAiCompletion(Query query, HttpHeaders headers) {
-        final var url = OPENAI_URL + "/chat/completions";
-        final var body = OpenAiAdapterMapper.INSTANCE.fromDomainToOpenAi(query);
-
-        final var response = restTemplate.exchange(
-                url,
-                HttpMethod.POST,
-                new HttpEntity<>(body, headers),
-                OpenAiCompletionResponseDto.class
-        ).getBody();
-
-        if (response == null) {
-            throw new RuntimeException("Could not get completion for query " + query.getMessage());
-        }
-
-        return response.getChoices().stream()
-                .filter(c -> c.getIndex().equals(0L))
-                .map(c -> c.getMessage().getContent())
-                .findFirst()
-                .orElseThrow();
-    }
-
 
     @Mapper
-    abstract static class OpenAiAdapterMapper {
-        private static final OpenAiAdapterMapper INSTANCE =
-                Mappers.getMapper(OpenAiAdapterMapper.class);
+    abstract static class EmbeddingAdapterMapper {
+        private static final EmbeddingAdapterMapper INSTANCE =
+                Mappers.getMapper(EmbeddingAdapterMapper.class);
 
         abstract OpenAiEmbeddingRequestDto fromDomainToOpenAi(String model, String input);
-
-        @Mapping(target = "messages", expression = "java( getMessagesFromQuery(domain) )")
-        @Mapping(target = "model", ignore = true)
-        abstract OpenAiCompletionRequestDto fromDomainToOpenAi(Query domain);
-
-        @Mapping(target = "question", source = "message")
-        @Mapping(target = "context", expression = "java(getContext(domain.getContext()))")
-        abstract NlpCloudRobertaCompletionRequestDto fromDomainToNlpCloud(Query domain);
-
-        List<OpenAiCompletionMessageDto> getMessagesFromQuery(Query query) {
-            final var messages = new ArrayList<OpenAiCompletionMessageDto>();
-            messages.add(
-                    OpenAiCompletionMessageDto.builder()
-                            .role("system")
-                            .content("You are a helpful assistant.")
-                            .build()
-                    );
-            messages.addAll(
-                    query.getContext().stream()
-                            .map(s ->
-                                    OpenAiCompletionMessageDto.builder()
-                                            .role("system")
-                                            .content(s)
-                                            .build()
-                            ).collect(Collectors.toSet())
-            );
-
-            messages.add(
-                    OpenAiCompletionMessageDto.builder()
-                            .role("user")
-                            .content(query.getMessage())
-                            .build()
-            );
-//            ,
-//            OpenAiCompletionMessageDto.builder()
-//                    .role("system")
-//                    .content("If any of the below information seems irrelevant ignore them.")
-//                    .build()
-            return messages;
-        }
-
-        String getContext(List<String> context) {
-            final var builder = new StringBuilder();
-            context.forEach(c -> builder.append("\"").append(c).append("\""));
-            return builder.toString();
-        }
 
     }
 }

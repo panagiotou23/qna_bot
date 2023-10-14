@@ -94,7 +94,7 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
     private String getUrl(EmbeddingModel embeddingModel) {
         String url;
         if (embeddingModel.equals(EmbeddingModel.OPEN_AI)) {
-            url = "https://open-ai-1536-cosine-63159e9.svc.eu-west4-gcp.pinecone.io";
+            url = "https://thesis-open-ai-test-aef333f.svc.gcp-starter.pinecone.io";
         } else if (embeddingModel.equals(EmbeddingModel.BERT)) {
             url = "https://thesis-bert-test-aef333f.svc.gcp-starter.pinecone.io";
         } else {

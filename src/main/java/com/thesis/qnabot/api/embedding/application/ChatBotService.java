@@ -111,10 +111,6 @@ public class ChatBotService implements EditEmbeddingsUseCase, QueryCompletionMod
             throw new RuntimeException("The Embedding Model is either not defined or not supported");
         }
 
-        log.info("Context");
-        embeddings.stream().map(Embedding::getIndex).forEach(log::info);
-        log.info("");
-
         final var query = Query.builder()
                 .context(
                         embeddings.stream()

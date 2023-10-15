@@ -28,14 +28,14 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
     private final RestTemplate restTemplate = new RestTemplate();
 
     private final int VECTORS_CHUNK_SIZE = 100;
-    private final String PINECONE_INDEX_URL = "https://thesis-83dacea.svc.gcp-starter.pinecone.io";
-    private final String PINECONE_URL = "https://controller.gcp-starter.pinecone.io";
+    private final String PINECONE_INDEX_URL = "-63159e9.svc.eu-west4-gcp.pinecone.io";
+    private final String PINECONE_URL = "https://controller.eu-west4-gcp.pinecone.io";
 
     @Override
-    public void saveEmbeddings(String apiKey, List<Embedding> embeddings) {
+    public void saveEmbeddings(String apiKey, String indexName, List<Embedding> embeddings) {
         final var headers = getHeaders(apiKey);
 
-        final var url = PINECONE_INDEX_URL + "/vectors/upsert";
+        final var url = "https://" + indexName + PINECONE_INDEX_URL + "/vectors/upsert";
 
         final var embeddingsChunked = Lists.partition(embeddings, VECTORS_CHUNK_SIZE);
         final int[] totalEmbeddings = {0};
@@ -61,9 +61,9 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
     }
 
     @Override
-    public void deleteAllEmbeddings(String apiKey) {
+    public void deleteAllEmbeddings(String apiKey, String indexName) {
         final var headers = getHeaders(apiKey);
-        final var url = PINECONE_URL + "/databases/thesis";
+        final var url = PINECONE_URL + "/databases/" + indexName;
         restTemplate.exchange(
                 url,
                 HttpMethod.DELETE,
@@ -73,7 +73,7 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
     }
 
     @Override
-    public void createDatabase(String apiKey, Integer embeddingSize, KnnAlgorithm knnAlgorithm) {
+    public void createDatabase(String apiKey, String indexName, Integer embeddingSize, KnnAlgorithm knnAlgorithm) {
         if (knnAlgorithm == null) {
             throw new RuntimeException("KNN Algorithm is not defined");
         }
@@ -82,8 +82,9 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
         final var url = PINECONE_URL + "/databases";
 
         final var body = PineconeCreateIndexRequestDto.builder()
+                .name(indexName)
                 .dimension(embeddingSize)
-                .metric(knnAlgorithm.getPineconeValue())
+                .metric(knnAlgorithm.getStringValue())
                 .build();
         restTemplate.exchange(
                 url,
@@ -94,11 +95,11 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
     }
 
     @Override
-    public List<Embedding> findKNearest(String apiKey, List<Double> values, int k) {
+    public List<Embedding> findKNearest(String apiKey, String indexName, List<Double> values, int k) {
 
         final var headers = getHeaders(apiKey);
 
-        final var url = PINECONE_INDEX_URL + "/query";
+        final var url = "https://" + indexName + PINECONE_INDEX_URL + "/query";
 
         final var body = PineconeFindKNearestRequestDto.builder()
                 .vector(values)
@@ -120,7 +121,7 @@ public class VectorDatabaseAdapter implements VectorDatabaseReadPort, VectorData
                 .collect(Collectors.toList());
     }
 
-    private static HttpHeaders getHeaders(String apiKey) {
+    private HttpHeaders getHeaders(String apiKey) {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Api-Key", apiKey);
         headers.add("accept", "application/json");

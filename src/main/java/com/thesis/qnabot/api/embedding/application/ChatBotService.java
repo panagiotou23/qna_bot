@@ -50,16 +50,16 @@ public class ChatBotService implements EditEmbeddingsUseCase, QueryCompletionMod
     private String completionApiKey;
 
     @Override
-    public void createEmbeddings(MultipartFile file) {
+    public void createEmbeddings(String indexName, MultipartFile file) {
 
         final var document = Utils.toString(file);
 
-        createEmbeddings(document);
+        createEmbeddings(indexName, document);
 
     }
 
     @Override
-    public void createEmbeddings(String document) {
+    public void createEmbeddings(String indexName, String document) {
 
         final var chucks = chunkDocument(
                 new String(document.getBytes(StandardCharsets.US_ASCII), StandardCharsets.US_ASCII)
@@ -79,7 +79,7 @@ public class ChatBotService implements EditEmbeddingsUseCase, QueryCompletionMod
         }
 
         if (vectorDatabaseModel.equals(VectorDatabaseModel.PINECONE)) {
-            vectorDatabaseWritePort.saveEmbeddings(vectorDatabaseApiKey, embeddings);
+            vectorDatabaseWritePort.saveEmbeddings(vectorDatabaseApiKey, indexName, embeddings);
         } else {
             throw new RuntimeException("The Vectorized Database Model is either not defined or not supported");
         }
@@ -88,13 +88,13 @@ public class ChatBotService implements EditEmbeddingsUseCase, QueryCompletionMod
 
 
     @Override
-    public void deleteAllEmbeddings() {
-        vectorDatabaseWritePort.deleteAllEmbeddings(vectorDatabaseApiKey);
+    public void deleteAllEmbeddings(String indexName) {
+        vectorDatabaseWritePort.deleteAllEmbeddings(vectorDatabaseApiKey, indexName);
     }
 
     @Override
-    public void createDatabase() {
-        vectorDatabaseWritePort.createDatabase(vectorDatabaseApiKey, embeddingModel.getEmbeddingSize(), knnAlgorithm);
+    public void createDatabase(String indexName) {
+        vectorDatabaseWritePort.createDatabase(vectorDatabaseApiKey, indexName, embeddingModel.getEmbeddingSize(), knnAlgorithm);
     }
 
 
@@ -103,7 +103,8 @@ public class ChatBotService implements EditEmbeddingsUseCase, QueryCompletionMod
         List<Embedding> embeddings;
         if (embeddingModel != null) {
             embeddings = findKNearest(
-                    embeddingApiKey,
+                    request.getIndexName(),
+                    request.getQuery(),
                     request.getK()
             );
         } else {
@@ -130,7 +131,7 @@ public class ChatBotService implements EditEmbeddingsUseCase, QueryCompletionMod
 
     }
 
-    public List<Embedding> findKNearest(String query, int k) {
+    public List<Embedding> findKNearest(String indexName, String query, int k) {
         Embedding queryEmbedding;
         if (embeddingModel != null) {
             queryEmbedding = Embedding.builder()
@@ -142,7 +143,7 @@ public class ChatBotService implements EditEmbeddingsUseCase, QueryCompletionMod
         }
 
         if (vectorDatabaseModel.equals(VectorDatabaseModel.PINECONE)) {
-            return vectorDatabaseReadPort.findKNearest(vectorDatabaseApiKey, queryEmbedding.getValues(), k);
+            return vectorDatabaseReadPort.findKNearest(vectorDatabaseApiKey, indexName, queryEmbedding.getValues(), k);
         } else {
             throw new RuntimeException("The Vectorized Database Model is either not defined or not supported");
         }

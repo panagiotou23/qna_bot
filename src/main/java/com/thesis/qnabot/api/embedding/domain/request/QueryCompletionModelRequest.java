@@ -7,6 +7,8 @@ import lombok.Data;
 @Builder
 public class QueryCompletionModelRequest {
 
+    private String indexName;
+
     private String query;
 
     private int k;

@@ -6,9 +6,9 @@ import com.thesis.qnabot.api.embedding.domain.enums.KnnAlgorithm;
 import java.util.List;
 
 public interface VectorDatabaseWritePort {
-    void saveEmbeddings(String vectorDatabaseApiKey, List<Embedding> embeddings);
+    void saveEmbeddings(String vectorDatabaseApiKey, String indexName, List<Embedding> embeddings);
 
-    void deleteAllEmbeddings(String apiKey);
+    void deleteAllEmbeddings(String apiKey, String indexName);
 
-    void createDatabase(String apiKey, Integer embeddingSize, KnnAlgorithm knnAlgorithm);
+    void createDatabase(String apiKey, String indexName, Integer embeddingSize, KnnAlgorithm knnAlgorithm);
 }

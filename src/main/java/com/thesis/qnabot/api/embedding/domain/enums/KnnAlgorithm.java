@@ -9,5 +9,5 @@ public enum KnnAlgorithm {
     COSINE("cosine"),
     EUCLIDEAN("euclidean");
 
-    private final String pineconeValue;
+    private final String stringValue;
 }

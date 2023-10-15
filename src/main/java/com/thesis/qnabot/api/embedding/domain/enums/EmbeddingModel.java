@@ -7,8 +7,9 @@ import lombok.RequiredArgsConstructor;
 @Getter
 public enum EmbeddingModel {
 
-    OPEN_AI(1536),
-    BERT(768);
+    OPEN_AI(1536, "openai"),
+    BERT(768, "bert");
 
     private final Integer embeddingSize;
+    private final String stringValue;
 }

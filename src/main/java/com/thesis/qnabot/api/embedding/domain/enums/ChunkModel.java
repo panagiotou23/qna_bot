@@ -6,8 +6,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Getter
 public enum ChunkModel {
-    ARBITRARY("arbitrary"),
-    SENTENCES("sentences");
+    SENTENCES("sentences"),
+    ARBITRARY("arbitrary");
 
     private final String stringValue;
 }

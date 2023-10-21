@@ -11,6 +11,6 @@ public class QueryCompletionModelRequest {
 
     private String query;
 
-    private int k;
+    private Integer k;
 
 }

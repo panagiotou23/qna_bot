@@ -35,6 +35,7 @@ public class ChatBotService implements EditEmbeddingsUseCase, QueryCompletionMod
     private final VectorDatabaseWritePort vectorDatabaseWritePort;
     private final VectorDatabaseReadPort vectorDatabaseReadPort;
 
+    private int defaultK = 5;
 
     private int chunkSize = 100;
     private int chunkOverlap = 25;
@@ -101,11 +102,12 @@ public class ChatBotService implements EditEmbeddingsUseCase, QueryCompletionMod
     @Override
     public String query(QueryCompletionModelRequest request) {
         List<Embedding> embeddings;
+        final var k = request.getK() == null || request.getK() == 0 ? defaultK : request.getK();
         if (embeddingModel != null) {
             embeddings = findKNearest(
                     request.getIndexName(),
                     request.getQuery(),
-                    request.getK()
+                    k
             );
         } else {
             throw new RuntimeException("The Embedding Model is either not defined or not supported");
